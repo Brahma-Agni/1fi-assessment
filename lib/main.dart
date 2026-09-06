@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'marketplace_service.dart';
 import 'models.dart';
 
-const primary = Color(0xFF6C35D5);
-const background = Color(0xFFF8F6FB);
-const ink = Color(0xFF211D29);
-const muted = Color(0xFF736D7C);
+const primary = Color(0xFF6438D7);
+const background = Color(0xFFF7F6FA);
+const ink = Color(0xFF19151F);
+const muted = Color(0xFF716B78);
 
 void main() => runApp(const OneFiApp());
 
@@ -26,6 +26,23 @@ class OneFiApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primary,
         surface: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: TextStyle(
+          color: ink,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
       ),
       textTheme: const TextTheme(
         headlineMedium: TextStyle(fontWeight: FontWeight.w800, color: ink),
@@ -64,11 +81,19 @@ class _ShopScreenState extends State<ShopScreen> {
   ShopSection section = ShopSection.marketplace;
   String query = '';
   Timer? debounce;
+  final searchController = TextEditingController();
 
   @override
   void dispose() {
     debounce?.cancel();
+    searchController.dispose();
     super.dispose();
+  }
+
+  void clearSearch() {
+    debounce?.cancel();
+    searchController.clear();
+    setState(() => query = '');
   }
 
   @override
@@ -87,6 +112,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       const _ShopHeader(),
                       const SizedBox(height: 18),
                       TextField(
+                        controller: searchController,
                         onChanged: (value) {
                           debounce?.cancel();
                           debounce = Timer(
@@ -97,10 +123,17 @@ class _ShopScreenState extends State<ShopScreen> {
                           );
                         },
                         enabled: section == ShopSection.marketplace,
-                        decoration: const InputDecoration(
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
                           hintText: 'Search products or categories',
-                          prefixIcon: Icon(Icons.search_rounded),
-                          suffixIcon: Icon(Icons.tune_rounded),
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: query.isNotEmpty
+                              ? IconButton(
+                                  onPressed: clearSearch,
+                                  tooltip: 'Clear search',
+                                  icon: const Icon(Icons.close_rounded),
+                                )
+                              : const Icon(Icons.tune_rounded),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -108,12 +141,38 @@ class _ShopScreenState extends State<ShopScreen> {
                         selected: section,
                         onChanged: (value) => setState(() => section = value),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 22),
+                      if (section == ShopSection.marketplace)
+                        Row(
+                          children: [
+                            Text(
+                              query.isEmpty
+                                  ? 'Recommended for you'
+                                  : 'Search results',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const Spacer(),
+                            const Text(
+                              'Flexible EMI',
+                              style: TextStyle(
+                                color: primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (section == ShopSection.marketplace)
+                        const SizedBox(height: 14),
                     ],
                   ),
                 ),
                 if (section == ShopSection.marketplace)
-                  MarketplaceCatalog(service: widget.service, query: query)
+                  MarketplaceCatalog(
+                    service: widget.service,
+                    query: query,
+                    onClearSearch: clearSearch,
+                  )
                 else
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -138,11 +197,18 @@ class _ShopHeader extends StatelessWidget {
       Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: primary,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x346438D7),
+                  blurRadius: 18,
+                  offset: Offset(0, 7),
+                ),
+              ],
             ),
             child: const Center(
               child: Text(
@@ -154,6 +220,20 @@ class _ShopHeader extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 12),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '1Fi Marketplace',
+                style: TextStyle(fontWeight: FontWeight.w800, color: ink),
+              ),
+              Text(
+                'Smart purchases, simpler plans',
+                style: TextStyle(fontSize: 11, color: muted),
+              ),
+            ],
+          ),
           const Spacer(),
           IconButton.filledTonal(
             onPressed: () {},
@@ -162,42 +242,106 @@ class _ShopHeader extends StatelessWidget {
           ),
         ],
       ),
-      const SizedBox(height: 18),
-      Text('Shop', style: Theme.of(context).textTheme.headlineMedium),
-      const SizedBox(height: 14),
+      const SizedBox(height: 20),
+      Text('Shop smarter', style: Theme.of(context).textTheme.headlineMedium),
+      const SizedBox(height: 4),
+      const Text(
+        'Find the right product and a payment plan that fits.',
+        style: TextStyle(color: muted),
+      ),
+      const SizedBox(height: 16),
       Container(
-        padding: const EdgeInsets.all(20),
+        height: 142,
+        padding: const EdgeInsets.fromLTRB(20, 18, 14, 18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [primary, Color(0xFF9A68EE)]),
-          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF4D22BC), Color(0xFF8C5DE8)],
+          ),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x2A6438D7),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Upgrade today.\nPay your way.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 23,
-                      fontWeight: FontWeight.w800,
-                      height: 1.15,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color(0x2EFFFFFF),
+                      borderRadius: BorderRadius.all(Radius.circular(99)),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      child: Text(
+                        '1Fi EXCLUSIVE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 8),
+                  Spacer(),
                   Text(
-                    'Flexible plans, clear costs, zero surprises.',
+                    'Bring it home today',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Transparent plans from ₹3,000/month',
                     style: TextStyle(color: Color(0xFFEDE3FF)),
                   ),
                 ],
               ),
             ),
-            Text(
-              '✨',
-              style: TextStyle(fontSize: 46),
-              semanticsLabel: 'Sparkles',
+            SizedBox(
+              width: 92,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 82,
+                    height: 82,
+                    decoration: const BoxDecoration(
+                      color: Color(0x1FFFFFFF),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Transform.rotate(
+                    angle: -.12,
+                    child: const Icon(
+                      Icons.shopping_bag_rounded,
+                      size: 58,
+                      color: Colors.white,
+                      semanticLabel: 'Shopping bag',
+                    ),
+                  ),
+                  const Positioned(
+                    right: 5,
+                    top: 13,
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFFFFD36B),
+                      size: 23,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -270,9 +414,11 @@ class MarketplaceCatalog extends StatefulWidget {
     super.key,
     required this.service,
     required this.query,
+    required this.onClearSearch,
   });
   final MarketplaceService service;
   final String query;
+  final VoidCallback onClearSearch;
   @override
   State<MarketplaceCatalog> createState() => _MarketplaceCatalogState();
 }
@@ -318,11 +464,13 @@ class _MarketplaceCatalogState extends State<MarketplaceCatalog> {
       }
       final products = snapshot.data ?? const [];
       if (products.isEmpty) {
-        return const SliverFillRemaining(
+        return SliverFillRemaining(
           child: _MessageState(
             icon: Icons.search_off_rounded,
             title: 'No products found',
             message: 'Try a different product or category.',
+            action: 'Clear search',
+            onPressed: widget.onClearSearch,
           ),
         );
       }
@@ -336,7 +484,7 @@ class _MarketplaceCatalogState extends State<MarketplaceCatalog> {
                 crossAxisCount: columns,
                 mainAxisSpacing: 14,
                 crossAxisSpacing: 14,
-                childAspectRatio: columns == 1 ? 1.62 : .72,
+                childAspectRatio: columns == 1 ? 3.08 : 1.18,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) => ProductCard(
@@ -370,7 +518,10 @@ class ProductCard extends StatelessWidget {
     label: '${product.name}, ${formatCurrency(product.price)}',
     child: Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: Color(0xFFF0EDF3)),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -378,8 +529,8 @@ class ProductCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              ProductArt(product: product, size: 116),
-              const SizedBox(width: 16),
+              ProductArt(product: product, size: 110),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -411,20 +562,42 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                     if (product.emiEligible) ...[
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Easy EMI available',
-                        style: TextStyle(
-                          color: Color(0xFF16794A),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                      const SizedBox(height: 7),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F6EF),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: const Text(
+                          'EMI available',
+                          style: TextStyle(
+                            color: Color(0xFF137248),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: muted),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF2EDFC),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: primary,
+                ),
+              ),
             ],
           ),
         ),
@@ -438,27 +611,53 @@ class ProductArt extends StatelessWidget {
   final Product product;
   final double size;
   @override
-  Widget build(BuildContext context) => Semantics(
-    image: true,
-    label: '${product.name} illustration',
-    child: Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(product.accent).withValues(alpha: .18),
-            Color(product.accent).withValues(alpha: .06),
+  Widget build(BuildContext context) {
+    final icon = switch (product.category) {
+      'Smartphones' => Icons.smartphone_rounded,
+      'Laptops' => Icons.laptop_mac_rounded,
+      'Audio' => Icons.headphones_rounded,
+      'Wearables' => Icons.watch_rounded,
+      _ => Icons.shopping_bag_rounded,
+    };
+    return Semantics(
+      image: true,
+      label: '${product.name} illustration',
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(product.accent).withValues(alpha: .18),
+              Color(product.accent).withValues(alpha: .06),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              top: size * .12,
+              right: size * .12,
+              child: Container(
+                width: size * .18,
+                height: size * .18,
+                decoration: BoxDecoration(
+                  color: Color(product.accent).withValues(alpha: .16),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Icon(icon, size: size * .48, color: Color(product.accent)),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
       ),
-      alignment: Alignment.center,
-      child: Text(product.emoji, style: TextStyle(fontSize: size * .43)),
-    ),
-  );
+    );
+  }
 }
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -1040,8 +1239,13 @@ class _BottomBar extends StatelessWidget {
         border: Border(top: BorderSide(color: Color(0xFFE8E3EC))),
       ),
       child: NavigationBar(
+        height: 70,
+        backgroundColor: Colors.white,
+        indicatorColor: const Color(0xFFECE5FC),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         selectedIndex: 2,
-        destinations: [
+        onDestinationSelected: (_) {},
+        destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
