@@ -11,6 +11,7 @@ This app was built from scratch because no 1Fi source code, design system, or ba
 - Functional Money dashboard with active EMI plans and monthly commitments
 - Functional Profile with account activity, cart, orders, help, and app information
 - Intentionally blank Top Brands and Nearby Stores sections
+- Ten-product catalog spanning phones, laptops, audio, wearables, televisions, washing machines, refrigerators, air conditioners, kitchen appliances, and home care
 - Responsive Marketplace catalog with loading, retryable error, and no-results states
 - Product details, variant-specific price and EMI loading
 - Shared cart with quantities, removal, totals, and full-payment demo checkout

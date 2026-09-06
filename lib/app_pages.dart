@@ -839,6 +839,12 @@ class _ProductIcon extends StatelessWidget {
       'Laptops' => Icons.laptop_mac_rounded,
       'Audio' => Icons.headphones_rounded,
       'Wearables' => Icons.watch_rounded,
+      'Televisions' => Icons.tv_rounded,
+      'Washing Machines' => Icons.local_laundry_service_rounded,
+      'Refrigerators' => Icons.kitchen_rounded,
+      'Air Conditioners' => Icons.ac_unit_rounded,
+      'Kitchen Appliances' => Icons.microwave_rounded,
+      'Home Care' => Icons.cleaning_services_rounded,
       _ => Icons.shopping_bag_rounded,
     };
     return Container(

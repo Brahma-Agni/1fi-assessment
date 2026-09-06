@@ -15,6 +15,9 @@ void main() {
     final service = MockMarketplaceService(delay: Duration.zero);
     expect((await service.getProducts('nova')).single.id, 'phone-pro');
     expect((await service.getProducts('audio')).single.id, 'headphones');
+    expect((await service.getProducts('televisions')).single.id, 'qled-tv');
+    expect((await service.getProducts('washing')).single.id, 'washing-machine');
+    expect(await service.getProducts(), hasLength(10));
     expect(await service.getProducts('missing'), isEmpty);
   });
 
