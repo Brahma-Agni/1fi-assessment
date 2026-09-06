@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'app_state.dart';
+import 'app_pages.dart';
 import 'marketplace_service.dart';
 import 'models.dart';
 
@@ -12,9 +14,31 @@ const muted = Color(0xFF716B78);
 
 void main() => runApp(const OneFiApp());
 
-class OneFiApp extends StatelessWidget {
-  const OneFiApp({super.key, this.service});
+class OneFiApp extends StatefulWidget {
+  const OneFiApp({super.key, this.service, this.appState});
   final MarketplaceService? service;
+  final MarketplaceAppState? appState;
+
+  @override
+  State<OneFiApp> createState() => _OneFiAppState();
+}
+
+class _OneFiAppState extends State<OneFiApp> {
+  late final MarketplaceService service;
+  late final MarketplaceAppState appState;
+
+  @override
+  void initState() {
+    super.initState();
+    service = widget.service ?? MockMarketplaceService();
+    appState = widget.appState ?? MarketplaceAppState();
+  }
+
+  @override
+  void dispose() {
+    if (widget.appState == null) appState.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -64,15 +88,57 @@ class OneFiApp extends StatelessWidget {
         ),
       ),
     ),
-    home: ShopScreen(service: service ?? MockMarketplaceService()),
+    home: AnimatedBuilder(
+      animation: appState,
+      builder: (context, _) => AppShell(service: service, appState: appState),
+    ),
+  );
+}
+
+class AppShell extends StatefulWidget {
+  const AppShell({super.key, required this.service, required this.appState});
+
+  final MarketplaceService service;
+  final MarketplaceAppState appState;
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  int selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: IndexedStack(
+      index: selectedIndex,
+      children: [
+        HomeScreen(
+          service: widget.service,
+          appState: widget.appState,
+          openShop: () => setState(() => selectedIndex = 2),
+        ),
+        MoneyScreen(
+          appState: widget.appState,
+          openShop: () => setState(() => selectedIndex = 2),
+        ),
+        ShopScreen(service: widget.service, appState: widget.appState),
+        ProfileScreen(appState: widget.appState),
+      ],
+    ),
+    bottomNavigationBar: _BottomBar(
+      selectedIndex: selectedIndex,
+      onChanged: (value) => setState(() => selectedIndex = value),
+    ),
   );
 }
 
 enum ShopSection { topBrands, nearbyStores, marketplace }
 
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key, required this.service});
+  const ShopScreen({super.key, required this.service, required this.appState});
   final MarketplaceService service;
+  final MarketplaceAppState appState;
   @override
   State<ShopScreen> createState() => _ShopScreenState();
 }
@@ -100,88 +166,79 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
       bottom: false,
-      child: Column(
-        children: [
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-                  sliver: SliverList.list(
-                    children: [
-                      const _ShopHeader(),
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: searchController,
-                        onChanged: (value) {
-                          debounce?.cancel();
-                          debounce = Timer(
-                            const Duration(milliseconds: 280),
-                            () {
-                              if (mounted) setState(() => query = value);
-                            },
-                          );
-                        },
-                        enabled: section == ShopSection.marketplace,
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          hintText: 'Search products or categories',
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: query.isNotEmpty
-                              ? IconButton(
-                                  onPressed: clearSearch,
-                                  tooltip: 'Clear search',
-                                  icon: const Icon(Icons.close_rounded),
-                                )
-                              : const Icon(Icons.tune_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _SectionPicker(
-                        selected: section,
-                        onChanged: (value) => setState(() => section = value),
-                      ),
-                      const SizedBox(height: 22),
-                      if (section == ShopSection.marketplace)
-                        Row(
-                          children: [
-                            Text(
-                              query.isEmpty
-                                  ? 'Recommended for you'
-                                  : 'Search results',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const Spacer(),
-                            const Text(
-                              'Flexible EMI',
-                              style: TextStyle(
-                                color: primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (section == ShopSection.marketplace)
-                        const SizedBox(height: 14),
-                    ],
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+            sliver: SliverList.list(
+              children: [
+                _ShopHeader(appState: widget.appState),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: searchController,
+                  onChanged: (value) {
+                    debounce?.cancel();
+                    debounce = Timer(const Duration(milliseconds: 280), () {
+                      if (mounted) setState(() => query = value);
+                    });
+                  },
+                  enabled: section == ShopSection.marketplace,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Search products or categories',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: query.isNotEmpty
+                        ? IconButton(
+                            onPressed: clearSearch,
+                            tooltip: 'Clear search',
+                            icon: const Icon(Icons.close_rounded),
+                          )
+                        : const Icon(Icons.tune_rounded),
                   ),
                 ),
+                const SizedBox(height: 14),
+                _SectionPicker(
+                  selected: section,
+                  onChanged: (value) => setState(() => section = value),
+                ),
+                const SizedBox(height: 22),
                 if (section == ShopSection.marketplace)
-                  MarketplaceCatalog(
-                    service: widget.service,
-                    query: query,
-                    onClearSearch: clearSearch,
-                  )
-                else
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _QuietSection(section: section),
+                  Row(
+                    children: [
+                      Text(
+                        query.isEmpty
+                            ? 'Recommended for you'
+                            : 'Search results',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Flexible EMI',
+                        style: TextStyle(
+                          color: primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
+                if (section == ShopSection.marketplace)
+                  const SizedBox(height: 14),
               ],
             ),
           ),
-          const _BottomBar(),
+          if (section == ShopSection.marketplace)
+            MarketplaceCatalog(
+              service: widget.service,
+              appState: widget.appState,
+              query: query,
+              onClearSearch: clearSearch,
+            )
+          else
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _QuietSection(section: section),
+            ),
         ],
       ),
     ),
@@ -189,7 +246,8 @@ class _ShopScreenState extends State<ShopScreen> {
 }
 
 class _ShopHeader extends StatelessWidget {
-  const _ShopHeader();
+  const _ShopHeader({required this.appState});
+  final MarketplaceAppState appState;
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,10 +293,13 @@ class _ShopHeader extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          IconButton.filledTonal(
-            onPressed: () {},
-            tooltip: 'Notifications',
-            icon: const Icon(Icons.notifications_none_rounded),
+          CartButton(
+            appState: appState,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CartScreen(appState: appState),
+              ),
+            ),
           ),
         ],
       ),
@@ -413,10 +474,12 @@ class MarketplaceCatalog extends StatefulWidget {
   const MarketplaceCatalog({
     super.key,
     required this.service,
+    required this.appState,
     required this.query,
     required this.onClearSearch,
   });
   final MarketplaceService service;
+  final MarketplaceAppState appState;
   final String query;
   final VoidCallback onClearSearch;
   @override
@@ -493,6 +556,7 @@ class _MarketplaceCatalogState extends State<MarketplaceCatalog> {
                     MaterialPageRoute<void>(
                       builder: (_) => ProductDetailsScreen(
                         service: widget.service,
+                        appState: widget.appState,
                         productId: products[index].id,
                       ),
                     ),
@@ -664,9 +728,11 @@ class ProductDetailsScreen extends StatefulWidget {
   const ProductDetailsScreen({
     super.key,
     required this.service,
+    required this.appState,
     required this.productId,
   });
   final MarketplaceService service;
+  final MarketplaceAppState appState;
   final String productId;
   @override
   State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
@@ -913,15 +979,39 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               color: Colors.white,
               border: Border(top: BorderSide(color: Color(0xFFE8E3EC))),
             ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: FilledButton(
-                onPressed: planId == null ? null : () => _proceed(product),
-                child: Text(
-                  planId == null ? 'Select an EMI plan' : 'Proceed with plan',
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 54,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        final variant = product.variants
+                            .where((item) => item.id == variantId)
+                            .firstOrNull;
+                        widget.appState.addToCart(product, variant);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Added to your cart')),
+                        );
+                      },
+                      icon: const Icon(Icons.add_shopping_cart_rounded),
+                      label: const Text('Add to cart'),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 54,
+                    child: FilledButton(
+                      onPressed: planId == null
+                          ? null
+                          : () => _proceed(product),
+                      child: Text(planId == null ? 'Select EMI' : 'Continue'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -939,8 +1029,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         .firstOrNull;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            ConfirmationScreen(product: product, variant: variant, plan: plan),
+        builder: (_) => ConfirmationScreen(
+          appState: widget.appState,
+          product: product,
+          variant: variant,
+          plan: plan,
+        ),
       ),
     );
   }
@@ -1053,10 +1147,12 @@ class EmiPlanCard extends StatelessWidget {
 class ConfirmationScreen extends StatelessWidget {
   const ConfirmationScreen({
     super.key,
+    required this.appState,
     required this.product,
     required this.variant,
     required this.plan,
   });
+  final MarketplaceAppState appState;
   final Product product;
   final ProductVariant? variant;
   final EmiPlan plan;
@@ -1085,12 +1181,12 @@ class ConfirmationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Plan selected',
+              'Review your purchase',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
             const Text(
-              'Your selection is ready for the next step. No payment has been made.',
+              'Confirm the product and repayment plan below. This demo records the purchase without processing a real payment.',
               textAlign: TextAlign.center,
               style: TextStyle(color: muted),
             ),
@@ -1129,9 +1225,22 @@ class ConfirmationScreen extends StatelessWidget {
               width: double.infinity,
               height: 54,
               child: FilledButton(
-                onPressed: () =>
-                    Navigator.of(context).popUntil((route) => route.isFirst),
-                child: const Text('Back to Marketplace'),
+                onPressed: () {
+                  final order = appState.purchaseWithEmi(
+                    product,
+                    variant,
+                    plan,
+                  );
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute<void>(
+                      builder: (_) => PurchaseSuccessScreen(
+                        appState: appState,
+                        orders: [order],
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Confirm purchase'),
               ),
             ),
           ],
@@ -1229,7 +1338,9 @@ class _MessageState extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar();
+  const _BottomBar({required this.selectedIndex, required this.onChanged});
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
   @override
   Widget build(BuildContext context) => SafeArea(
     top: false,
@@ -1243,8 +1354,8 @@ class _BottomBar extends StatelessWidget {
         backgroundColor: Colors.white,
         indicatorColor: const Color(0xFFECE5FC),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        selectedIndex: 2,
-        onDestinationSelected: (_) {},
+        selectedIndex: selectedIndex,
+        onDestinationSelected: onChanged,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
