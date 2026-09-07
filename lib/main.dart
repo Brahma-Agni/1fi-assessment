@@ -542,26 +542,39 @@ class _MarketplaceCatalogState extends State<MarketplaceCatalog> {
         sliver: SliverLayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.crossAxisExtent < 540 ? 1 : 2;
-            return SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: columns == 1 ? 3.08 : 1.18,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => ProductCard(
-                  product: products[index],
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProductDetailsScreen(
-                        service: widget.service,
-                        appState: widget.appState,
-                        productId: products[index].id,
-                      ),
-                    ),
+            Widget buildCard(BuildContext context, int index) => ProductCard(
+              product: products[index],
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ProductDetailsScreen(
+                    service: widget.service,
+                    appState: widget.appState,
+                    productId: products[index].id,
                   ),
                 ),
+              ),
+            );
+
+            if (columns == 1) {
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => index.isOdd
+                      ? const SizedBox(height: 14)
+                      : buildCard(context, index ~/ 2),
+                  childCount: products.length * 2 - 1,
+                ),
+              );
+            }
+
+            return SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                mainAxisExtent: 180,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                buildCard,
                 childCount: products.length,
               ),
             );
@@ -593,7 +606,7 @@ class ProductCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              ProductArt(product: product, size: 110),
+              ProductArt(product: product, size: 100),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

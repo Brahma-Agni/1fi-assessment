@@ -81,6 +81,35 @@ void main() {
     expect(find.text('Nova Pro 5G'), findsOneWidget);
   });
 
+  testWidgets('catalog cards fit a narrow phone without overflowing', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              MarketplaceCatalog(
+                service: MockMarketplaceService(delay: Duration.zero),
+                appState: MarketplaceAppState(),
+                query: '',
+                onClearSearch: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('product flow requires a plan before proceeding', (tester) async {
     await tester.pumpWidget(
       OneFiApp(service: MockMarketplaceService(delay: Duration.zero)),
